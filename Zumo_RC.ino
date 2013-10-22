@@ -1,8 +1,16 @@
-// 20.09.2013 kkostyuk
-// Initial version with direct motor control
+// 22.10.2013 kkostyuk
+// Version 0.2 with motor control by external lib
 // External lib IRremote - https://github.com/shirriff/Arduino-IRremote
 #include <IRremote.h>
 #include <IRremoteInt.h>
+// External lib ArduMoto - https://github.com/4Robots/arduino-ardumotor-library
+#include <ArduMoto.h>
+#include <defines.h>
+
+#define FW 0
+#define FW 1
+
+//#define MAXSPEED 50
 
 //Pin config
 const int buttonPin = 2; //button 
@@ -12,77 +20,29 @@ IRrecv irrecv(TSOP_Pin);
 decode_results results;
 
 //Motor
-const int M1_Dir_Pin =  12; 
-const int M1_PWM_Pin =  3; 
-const int M2_Dir_Pin =  13; 
-const int M2_PWM_Pin =  11;
+ArduMoto Moto;
+byte motorAspeed = 0;
+byte motorBspeed = 0;
 
-
-
-void rigth_f(){
-    digitalWrite(M1_Dir_Pin, HIGH);   
-    digitalWrite(M1_PWM_Pin, HIGH);    
-    
-    digitalWrite(M2_Dir_Pin, LOW);   
-    digitalWrite(M2_PWM_Pin, LOW);   
-}
-void left_f(){
-    digitalWrite(M1_Dir_Pin, LOW);   
-    digitalWrite(M1_PWM_Pin, LOW);   
-    
-    digitalWrite(M2_Dir_Pin, HIGH);   
-    digitalWrite(M2_PWM_Pin, HIGH);    
-}
-
-
-void rigth(){
-    digitalWrite(M1_Dir_Pin, HIGH);   
-    digitalWrite(M1_PWM_Pin, HIGH);   
-    
-    digitalWrite(M2_Dir_Pin, LOW);   
-    digitalWrite(M2_PWM_Pin, HIGH);   
-}
-void left(){
-    digitalWrite(M1_Dir_Pin, LOW);   
-    digitalWrite(M1_PWM_Pin, HIGH);   
-    
-    digitalWrite(M2_Dir_Pin, HIGH);   
-    digitalWrite(M2_PWM_Pin, HIGH);
-}
-
-void forward(){
-    digitalWrite(M1_Dir_Pin, HIGH);   
-    digitalWrite(M1_PWM_Pin, HIGH);   
-    
-    digitalWrite(M2_Dir_Pin, HIGH);   
-    digitalWrite(M2_PWM_Pin, HIGH);
-}
-
-void back(){
-    digitalWrite(M1_Dir_Pin, LOW);   
-    digitalWrite(M1_PWM_Pin, HIGH);   
-    
-    digitalWrite(M2_Dir_Pin, LOW);   
-    digitalWrite(M2_PWM_Pin, HIGH);
-}
-void stopBot(){
-    digitalWrite(M1_Dir_Pin, LOW);   
-    digitalWrite(M1_PWM_Pin, LOW);   
-    
-    digitalWrite(M2_Dir_Pin, LOW);   
-    digitalWrite(M2_PWM_Pin, LOW);
+byte changeSpeed(byte motorSpeed, byte change, byte dir)
+{
+  boolean _dir = (motorSpeed < 0);
+  
+  byte _speed = abs(motorSpeed);
+  if (dir == FW) {
+    _speed += change;
+    return _speed;}
+  else {
+    _speed -= change;
+    return -_speed;}
+   
 }
 
 
 void setup() {                
   Serial.begin(115200);
 //---Motors init
-  pinMode(M1_Dir_Pin, OUTPUT);  //M2   
-  pinMode(M1_PWM_Pin, OUTPUT);     
-
-  pinMode(M2_Dir_Pin, OUTPUT); //M1    
-  pinMode(M2_PWM_Pin, OUTPUT);     
-  stopBot();
+  Moto.begin(); 
 //---StartButton
   pinMode(buttonPin, INPUT); 
 //---TSOP
@@ -100,30 +60,32 @@ void loop() {
     //Go forward
     case B00000011:
     case B00100000:
-      forward();
+      Moto.setSpeeds(100,100);    
     Serial.println("Forward");
     break;
     //Go rotate left
     case B00000001:
     case B00010000:
-      left_f();
+      Moto.setSpeeds(0,50);
       Serial.println("Left");
     break;
     //Go rotate right
     case B00000010:
     case B00010001:
-      rigth_f();
+      Moto.setSpeeds(50, 0);
       Serial.println("Right");
     break;
     //Go to back
     case B00100001:
-      back();
+      Moto.setSpeeds(-50,-50);
       Serial.println("Back");
     break;
     //Stop    
     case B00000000:
     case B00111011:
-      stopBot();
+      //stopBot();
+      Moto.stop('A');
+      Moto.stop('B');      
       Serial.println("Stop");
     default:
       Serial.print("Incorrect comand: ");
